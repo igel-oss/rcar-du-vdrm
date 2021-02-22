@@ -628,20 +628,20 @@ int rcar_du_vsp_init(struct rcar_du_vsp *vsp, struct device_node *np,
 		drm_plane_helper_add(&plane->plane,
 				     &rcar_du_vsp_plane_helper_funcs);
 
-		if (type == DRM_PLANE_TYPE_PRIMARY) {
+		if (type == DRM_PLANE_TYPE_PRIMARY)
 			plane->zpos = 0;
-		} else {
+		else
 			plane->zpos = 1;
-			drm_object_attach_property(&plane->plane.base,
+
+		drm_object_attach_property(&plane->plane.base,
 					   rcdu->props.alpha, 255);
-			drm_object_attach_property(&plane->plane.base,
+		drm_object_attach_property(&plane->plane.base,
 					   rcdu->props.colorkey,
 					   RCAR_DU_COLORKEY_NONE);
-			if (rcdu->props.colorkey_alpha)
-				drm_object_attach_property(&plane->plane.base,
+		if (rcdu->props.colorkey_alpha)
+			drm_object_attach_property(&plane->plane.base,
 						   rcdu->props.colorkey_alpha,
 						   0);
-		}
 		drm_plane_create_zpos_property(&plane->plane, plane->zpos, 0,
 					       vsp->num_planes - 1);
 	}
