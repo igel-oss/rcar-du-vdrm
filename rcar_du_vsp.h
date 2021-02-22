@@ -24,6 +24,7 @@ struct rcar_du_vsp_plane {
 	struct drm_plane plane;
 	struct rcar_du_vsp *vsp;
 	unsigned int index;
+	int zpos;
 
 	/* for virtual */
 	struct vdrm_display *vdisplay;
