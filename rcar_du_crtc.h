@@ -21,6 +21,12 @@
 
 struct rcar_du_group;
 struct rcar_du_vsp;
+struct vdrm_display;
+
+struct rcar_du_vdrm_display {
+	struct vdrm_display *display;
+	struct list_head head;
+};
 
 /**
  * struct rcar_du_crtc - the CRTC, representing a DU superposition processor
@@ -71,6 +77,9 @@ struct rcar_du_crtc {
 	unsigned int sources_count;
 
 	struct drm_writeback_connector writeback;
+
+	/* for virtual */
+	struct list_head vdrm_displays;
 };
 
 #define to_rcar_crtc(c)		container_of(c, struct rcar_du_crtc, crtc)
@@ -108,5 +117,9 @@ int rcar_du_crtc_create(struct rcar_du_group *rgrp, unsigned int swindex,
 void rcar_du_crtc_finish_page_flip(struct rcar_du_crtc *rcrtc);
 
 void rcar_du_crtc_dsysr_clr_set(struct rcar_du_crtc *rcrtc, u32 clr, u32 set);
+
+int rcar_du_crtc_add_vdrm_display(struct rcar_du_crtc *rcrtc,
+				  struct vdrm_display *vdisplay);
+void rcar_du_crtc_remove_vdrm_displays(struct rcar_du_crtc *rcrtc);
 
 #endif /* __RCAR_DU_CRTC_H__ */

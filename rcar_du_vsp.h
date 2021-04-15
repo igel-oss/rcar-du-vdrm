@@ -18,11 +18,15 @@ struct drm_framebuffer;
 struct rcar_du_format_info;
 struct rcar_du_vsp;
 struct sg_table;
+struct vdrm_display;
 
 struct rcar_du_vsp_plane {
 	struct drm_plane plane;
 	struct rcar_du_vsp *vsp;
 	unsigned int index;
+
+	/* for virtual */
+	struct vdrm_display *vdisplay;
 };
 
 struct rcar_du_vsp {
@@ -110,5 +114,8 @@ static inline void rcar_du_vsp_unmap_fb(struct rcar_du_vsp *vsp,
 {
 }
 #endif
+
+/* for virtual */
+const u32 *rcar_du_get_plane_formats(int *num_formats);
 
 #endif /* __RCAR_DU_VSP_H__ */

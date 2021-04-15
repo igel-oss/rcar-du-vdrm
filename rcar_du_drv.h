@@ -103,6 +103,10 @@ struct rcar_du_device {
 	unsigned int vspd1_sink;
 	bool vspdl_fix;
 	unsigned int brs_num;
+
+	/* for virtual */
+	struct rcar_du_vdrm *vdrms;
+	int num_vdrms;
 };
 
 static inline bool rcar_du_has(struct rcar_du_device *rcdu,

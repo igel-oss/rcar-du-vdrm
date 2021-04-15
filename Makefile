@@ -10,6 +10,8 @@ rcar-du-drm-y := rcar_du_crtc.o \
 		 rcar_du_group.o \
 		 rcar_du_kms.o \
 		 rcar_du_plane.o \
+		 rcar_du_vdrm.o \
+		 virtual/vdrm_drv.o
 
 # LVDS
 rcar-du-drm-y	+= rcar_du_of.o \

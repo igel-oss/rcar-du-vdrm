@@ -29,6 +29,7 @@
 #include "rcar_du_kms.h"
 #include "rcar_du_vsp.h"
 #include "rcar_du_writeback.h"
+#include "rcar_du_vdrm.h"
 
 static void rcar_du_vsp_complete(void *private, unsigned int status, u32 crc)
 {
@@ -43,6 +44,9 @@ static void rcar_du_vsp_complete(void *private, unsigned int status, u32 crc)
 		rcar_du_writeback_complete(crtc);
 
 	drm_crtc_add_crc_entry(&crtc->crtc, false, 0, &crc);
+
+	/* for virtual */
+	rcar_du_vdrm_crtc_complete(crtc, status);
 }
 
 void rcar_du_vsp_enable(struct rcar_du_crtc *crtc)
@@ -316,7 +320,7 @@ static void rcar_du_vsp_plane_atomic_update(struct drm_plane *plane,
 				      rplane->index, NULL);
 }
 
-static const struct drm_plane_helper_funcs rcar_du_vsp_plane_helper_funcs = {
+const struct drm_plane_helper_funcs rcar_du_vsp_plane_helper_funcs = {
 	.prepare_fb = rcar_du_vsp_plane_prepare_fb,
 	.cleanup_fb = rcar_du_vsp_plane_cleanup_fb,
 	.atomic_check = rcar_du_vsp_plane_atomic_check,
@@ -527,7 +531,7 @@ static int rcar_du_vsp_plane_atomic_get_property(struct drm_plane *plane,
 	return 0;
 }
 
-static const struct drm_plane_funcs rcar_du_vsp_plane_funcs = {
+const struct drm_plane_funcs rcar_du_vsp_plane_funcs = {
 	.update_plane = drm_atomic_helper_update_plane,
 	.disable_plane = drm_atomic_helper_disable_plane,
 	.reset = rcar_du_vsp_plane_reset,
@@ -546,6 +550,7 @@ int rcar_du_vsp_init(struct rcar_du_vsp *vsp, struct device_node *np,
 	unsigned int num_crtcs = hweight32(crtcs);
 	unsigned int i;
 	int ret;
+	int num_vdrms;
 
 	/* Find the VSP device and initialize it. */
 	pdev = of_find_device_by_node(np);
@@ -564,6 +569,9 @@ int rcar_du_vsp_init(struct rcar_du_vsp *vsp, struct device_node *np,
 	  */
 	vsp->num_planes = rcdu->info->gen >= 3 ? 5 : 4;
 
+	/* for virtual */
+	num_vdrms = rcar_du_vdrm_count(rcdu);
+
 	vsp->planes = devm_kcalloc(rcdu->dev, vsp->num_planes,
 				   sizeof(*vsp->planes), GFP_KERNEL);
 	if (!vsp->planes)
@@ -577,6 +585,10 @@ int rcar_du_vsp_init(struct rcar_du_vsp *vsp, struct device_node *np,
 
 		plane->vsp = vsp;
 		plane->index = i;
+
+		/* skip for virtual */
+		if (i >= vsp->num_planes - num_vdrms)
+			continue;
 
 		/* Fix possible crtcs for plane when using VSPDL */
 		if (rcdu->vspdl_fix && vsp->index == VSPDL_CH) {
@@ -633,6 +645,14 @@ int rcar_du_vsp_init(struct rcar_du_vsp *vsp, struct device_node *np,
 					       vsp->num_planes - 1);
 		}
 	}
+	vsp->num_planes -= num_vdrms;
 
 	return 0;
+}
+
+/* for virtual */
+const u32 *rcar_du_get_plane_formats(int *num_formats)
+{
+	*num_formats = ARRAY_SIZE(rcar_du_vsp_formats);
+	return rcar_du_vsp_formats;
 }
