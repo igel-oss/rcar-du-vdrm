@@ -1,0 +1,116 @@
+From b8cf16484cd6488e8079aece803695658b67447e Mon Sep 17 00:00:00 2001
+From: Tomohito Esaki <etom@igel.co.jp>
+Date: Fri, 12 Mar 2021 17:35:27 +0900
+Subject: [PATCH] vsp1: commit the same Display List until a next vsync
+ interrupt.
+
+---
+ drivers/media/platform/vsp1/vsp1_dl.c  | 18 +++++++++++++-----
+ drivers/media/platform/vsp1/vsp1_drm.c |  6 +++++-
+ drivers/media/platform/vsp1/vsp1_drm.h |  2 ++
+ 3 files changed, 20 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/media/platform/vsp1/vsp1_dl.c b/drivers/media/platform/vsp1/vsp1_dl.c
+index 8e5f22660699..767ad5a231e4 100644
+--- a/drivers/media/platform/vsp1/vsp1_dl.c
++++ b/drivers/media/platform/vsp1/vsp1_dl.c
+@@ -199,6 +199,7 @@ struct vsp1_dl_list {
+ 	struct list_head chain;
+ 
+ 	unsigned int flags;
++	bool commited;
+ };
+ 
+ /**
+@@ -618,6 +619,7 @@ struct vsp1_dl_list *vsp1_dl_list_get(struct vsp1_dl_manager *dlm)
+ 		 * display list can assert list_empty() if it is not in a chain.
+ 		 */
+ 		INIT_LIST_HEAD(&dl->chain);
++		dl->commited = false;
+ 	}
+ 
+ 	spin_unlock_irqrestore(&dlm->lock, flags);
+@@ -888,8 +890,10 @@ static void vsp1_dl_list_commit_continuous(struct vsp1_dl_list *dl)
+ 	if (vsp1_dl_list_hw_update_pending(dlm)) {
+ 		WARN_ON(dlm->pending &&
+ 			(dlm->pending->flags & VSP1_DL_FRAME_END_INTERNAL));
+-		__vsp1_dl_list_put(dlm->pending);
+-		dlm->pending = dl;
++		if (!dl->commited) {
++			__vsp1_dl_list_put(dlm->pending);
++			dlm->pending = dl;
++		}
+ 		return;
+ 	}
+ 
+@@ -899,8 +903,10 @@ static void vsp1_dl_list_commit_continuous(struct vsp1_dl_list *dl)
+ 	 */
+ 	vsp1_dl_list_hw_enqueue(dl);
+ 
+-	__vsp1_dl_list_put(dlm->queued);
+-	dlm->queued = dl;
++	if (!dl->commited) {
++		__vsp1_dl_list_put(dlm->queued);
++		dlm->queued = dl;
++	}
+ }
+ 
+ static void vsp1_dl_list_commit_singleshot(struct vsp1_dl_list *dl)
+@@ -914,7 +920,8 @@ static void vsp1_dl_list_commit_singleshot(struct vsp1_dl_list *dl)
+ 	 */
+ 	vsp1_dl_list_hw_enqueue(dl);
+ 
+-	dlm->active = dl;
++	if (!dl->commited)
++		dlm->active = dl;
+ }
+ 
+ void vsp1_dl_list_commit(struct vsp1_dl_list *dl, unsigned int dl_flags)
+@@ -941,6 +948,7 @@ void vsp1_dl_list_commit(struct vsp1_dl_list *dl, unsigned int dl_flags)
+ 	else
+ 		vsp1_dl_list_commit_continuous(dl);
+ 
++	dl->commited = true;
+ 	spin_unlock_irqrestore(&dlm->lock, flags);
+ }
+ 
+diff --git a/drivers/media/platform/vsp1/vsp1_drm.c b/drivers/media/platform/vsp1/vsp1_drm.c
+index 58fe0fed6c4d..ff0c4b476021 100644
+--- a/drivers/media/platform/vsp1/vsp1_drm.c
++++ b/drivers/media/platform/vsp1/vsp1_drm.c
+@@ -79,6 +79,8 @@ static void vsp1_du_pipeline_frame_end(struct vsp1_pipeline *pipe,
+ 		drm_pipe->force_brx_release = false;
+ 		wake_up(&drm_pipe->wait_queue);
+ 	}
++
++	drm_pipe->commited_dl = NULL;
+ }
+ 
+ /* -----------------------------------------------------------------------------
+@@ -575,7 +577,9 @@ static void vsp1_du_pipeline_configure(struct vsp1_pipeline *pipe)
+ 	if (pipe->output->writeback)
+ 		dl_flags |= VSP1_DL_FRAME_END_WRITEBACK;
+ 
+-	dl = vsp1_dl_list_get(pipe->output->dlm);
++	if (!drm_pipe->commited_dl)
++		drm_pipe->commited_dl = vsp1_dl_list_get(pipe->output->dlm);
++	dl = drm_pipe->commited_dl;
+ 	dlb = vsp1_dl_list_get_body0(dl);
+ 
+ 	list_for_each_entry_safe(entity, next, &pipe->entities, list_pipe) {
+diff --git a/drivers/media/platform/vsp1/vsp1_drm.h b/drivers/media/platform/vsp1/vsp1_drm.h
+index 60eb4b9e87e0..b633d74418f9 100644
+--- a/drivers/media/platform/vsp1/vsp1_drm.h
++++ b/drivers/media/platform/vsp1/vsp1_drm.h
+@@ -44,6 +44,8 @@ struct vsp1_drm_pipeline {
+ 	/* Frame synchronisation */
+ 	void (*du_complete)(void *data, unsigned int status, u32 crc);
+ 	void *du_private;
++
++	struct vsp1_dl_list *commited_dl;
+ };
+ 
+ /**
+-- 
+2.17.1
+
