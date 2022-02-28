@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for the H3ULCB Kingfisher board
+ *
+ * Copyright (C) 2017 Renesas Electronics Corp.
+ * Copyright (C) 2017 Cogent Embedded, Inc.
+ */
+
+#include "r8a77951-ulcb.dts"
+#include "ulcb-kf.dtsi"
+
+/ {
+	model = "Renesas H3ULCB Kingfisher board based on r8a77951";
+	compatible = "shimafuji,kingfisher", "renesas,h3ulcb",
+		     "renesas,r8a7795";
+};
+
+/* use CN11 instead default CN29/CN48 (H3 only) */
+//#include "ulcb-kf-cn11.dtsi"
+
+/ {
+	vdrm0: vdrm@0 {
+		compatible = "virt-drm";
+		plane@0 {
+			x = <0>;
+			y = <0>;
+			width = <800>;
+			height = <600>;
+			zpos = <1>;
+		};
+	};
+};
+
+&du {
+	vdrms = <&vdrm0>;
+};
