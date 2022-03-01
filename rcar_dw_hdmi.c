@@ -12,6 +12,7 @@
 #include <linux/platform_device.h>
 
 #include <drm/bridge/dw_hdmi.h>
+#include <drm/drm_modes.h>
 
 #define RCAR_HDMI_PHY_OPMODE_PLLCFG	0x06	/* Mode of operation and PLL dividers */
 #define RCAR_HDMI_PHY_CKSYMTXCTRL	0x09	/* Clock Symbol and Transmitter Control Register */

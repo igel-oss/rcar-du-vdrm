@@ -18,6 +18,7 @@ struct drm_framebuffer;
 struct rcar_du_format_info;
 struct rcar_du_vsp;
 struct sg_table;
+struct vdrm_display;
 
 struct rcar_du_vsp_plane {
 	struct drm_plane plane;

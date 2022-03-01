@@ -115,6 +115,9 @@ struct rcar_du_device {
 	unsigned int brs_num;
 
 	bool mode_config_initialized;
+	
+	struct vdrm_device **vdrms;
+	int num_vdrms;
 };
 
 static inline bool rcar_du_has(struct rcar_du_device *rcdu,
