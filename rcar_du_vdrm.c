@@ -144,6 +144,13 @@ int rcar_du_vdrm_crtc_init(struct rcar_du_crtc *crtc, int index)
 	struct rcar_du_device *rcdu;
 	int i;
 
+	/* Warkarround:
+	   Skip all but the first CRTC that is linked to VSP when multiple
+	   CRTCs are linked to a VSP.
+	*/
+	if (crtc->vsp_pipe > 0)
+		return 0;
+
 	rcdu = crtc->dev;
 	for (i = 0; i < rcdu->num_vdrms; i++) {
 		struct vdrm_display *vdisplay;
